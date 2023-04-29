@@ -145,7 +145,14 @@ func getDetails(w http.ResponseWriter, r *http.Request)  {
 		wg.Add(1)
 		go func(id string) {
 			defer wg.Done()
-			detailsChannel <- getItemDetails(id)
+			// Manejar errores al obtener los detalles
+			details, err := getItemDetails(id)
+			if err != nil {
+				// Agregar el código de estado HTTP 500 para errores de servidor
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+			detailsChannel <- details
 		}(item.ID)
 	}
 	wg.Wait()
@@ -159,7 +166,7 @@ func getDetails(w http.ResponseWriter, r *http.Request)  {
 	json.NewEncoder(w).Encode(detailedItems)
 }
 
-func getItemDetails(id string) ItemDetails {
+func getItemDetails(id string) (ItemDetails, error){
 	// Simula la obtención de detalles desde una fuente externa con un time.Sleep
 	time.Sleep(100 * time.Millisecond)
 	var foundItem Item
@@ -169,13 +176,23 @@ func getItemDetails(id string) ItemDetails {
 			break
 		}
 	}
+
+	if foundItem.ID == "" {
+		return ItemDetails{}, errors.New("item no encontrado")
+	}
+
+	// Simular un error al consultar el servicio externo/DB
+	if foundItem.ID == "3" {
+		return ItemDetails{}, errors.New("error al consultar el servicio externo/DB")
+	}
 	//Obviamente, aquí iria un SELECT si es SQL o un llamado a un servicio externo
 	//pero esta busqueda del item junto con Details, la hacemos a mano.
 	return ItemDetails{
 		Item:    foundItem,
-		Details: fmt.Sprintf("Detalles para el item %s", id),
-	}
+		Details: fmt.Sprintf("Detalles del item %s", foundItem.ID),
+}, nil
 }
+
 
 func main() {
 	for i := 1; i <= 30; i++ {
