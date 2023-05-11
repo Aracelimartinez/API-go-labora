@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"labora-api/config"
 	"labora-api/controllers"
 	"labora-api/services"
@@ -209,13 +208,8 @@ func main() {
 	router.HandleFunc("/items/{id}", controllers.UpdateItem).Methods("PUT")
 	router.HandleFunc("/items/{id}", controllers.DeleteItem).Methods("DELETE")
 
-	dbData, err := services.LoadEnv()
-
-	if err != nil {
-		log.Fatalf("Error loading environment variables: %v", err)
-	}
-
-	if err := config.StartServer(fmt.Sprintf(":%s", dbData.Port), router); err != nil {
+	port := ":8000"
+	if err := config.StartServer(port, router); err != nil {
 		log.Fatalf("Error starting server: %v", err)
 	}
 

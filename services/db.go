@@ -48,13 +48,16 @@ func EstablishDbConnection() (error) {
 
 	psqlInfo := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable", dbData.Host, dbData.Port, dbData.RolName, dbData.RolPassword, dbData.DbName)
 
-	db, err := sql.Open("postgres", psqlInfo)
+	dbConn, err := sql.Open("postgres", psqlInfo)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	if err = db.Ping(); err != nil {
-		db.Close()
+	Db = dbConn
+	fmt.Println("Conexión exitosa a la base de datos:", dbConn)
+
+	if err = Db.Ping(); err != nil {
+		Db.Close()
 		return err
 	}
 

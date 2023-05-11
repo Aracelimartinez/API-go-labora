@@ -44,7 +44,7 @@ func GetItems(w http.ResponseWriter, r *http.Request)  {
 	}
 
 	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(items[start:end])
+	json.NewEncoder(w).Encode(items)
 }
 
 // Función para obtener un elemento específico

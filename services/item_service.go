@@ -3,11 +3,14 @@ package services
 import (
 	"labora-api/models"
 	"errors"
+	"fmt"
 )
 
 var Items []models.Item
 
 func GetItems() ([]models.Item, error) {
+
+	fmt.Println(Db)
 	rows, err := Db.Query("SELECT * FROM items")
 
 	if err != nil {
@@ -21,6 +24,7 @@ func GetItems() ([]models.Item, error) {
 		err := rows.Scan(&item.ID, &item.CustomerName, &item.OrderDate, &item.Product, &item.Quantity, &item.Price)
 
 		if err != nil {
+			fmt.Println(err)
 			return nil, err
 		}
 
@@ -29,6 +33,7 @@ func GetItems() ([]models.Item, error) {
 
 	err = rows.Err()
 	if err != nil {
+		fmt.Println(err)
 		return nil, err
 	}
 
@@ -40,6 +45,7 @@ func GetItem (id string) (*models.Item, error) {
 
 	stmt, err := Db.Prepare("SELECT * FROM items WHERE id = $1")
 	if err != nil {
+		fmt.Println(err)
 	    return &models.Item{}, err
 	}
 
@@ -48,6 +54,7 @@ func GetItem (id string) (*models.Item, error) {
 	row := stmt.QueryRow(id)
 	err = row.Scan(&item.ID, &item.CustomerName, &item.OrderDate, &item.Product, &item.Quantity, &item.Price)
     if err != nil {
+			fmt.Println(err)
       return &models.Item{}, err
     }
 
@@ -58,25 +65,20 @@ func GetItem (id string) (*models.Item, error) {
 func CreateItem(newItem models.Item) (int64, error) {
 
 	var err error
-	if newItem.Product == "" || newItem.CustomerName == "" || newItem.OrderDate == 0 || newItem.Quantity == "" || newItem.Price == "" || newItem.Details == "" {
+	if newItem.Product == "" || newItem.CustomerName == "" || newItem.OrderDate == "" || newItem.Quantity == 0 || newItem.Price == 0 {
 		err = errors.New("Todos los campos son obligatorios")
 
 		return 0, err
 	}
 
-	stmt, err := Db.Prepare("INSERT INTO public.items(customer_name, order_date, product, quantity, price) VALUES ($1, $2, $3, $4, $5, $6)",)
+	stmt, err := Db.Prepare("INSERT INTO public.items(customer_name, order_date, product, quantity, price) VALUES ($1, $2, $3, $4, $5) RETURNING id")
 	if err != nil {
 		return 0, err
 	}
 
 	defer stmt.Close()
-
-	result, err := stmt.Exec(newItem.CustomerName, newItem.OrderDate, newItem.Product, newItem.Quantity, newItem.Price)
-	if err != nil {
-		return 0, err
-	}
-
-	newItemID, err := result.LastInsertId()
+	var newItemID int64
+	err = stmt.QueryRow(newItem.CustomerName, newItem.OrderDate, newItem.Product, newItem.Quantity, newItem.Price).Scan(&newItemID)
 	if err != nil {
 		return 0, err
 	}
