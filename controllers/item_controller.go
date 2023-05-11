@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"github.com/gorilla/mux"
 	"io/ioutil"
@@ -110,9 +111,47 @@ func CreateItem(w http.ResponseWriter, r *http.Request)  {
 	w.Write(responseBody)
 }
 
+// Función para actualizar un elemento existente
 func UpdateItem(w http.ResponseWriter, r *http.Request)  {
+	w.Header().Set("Content-Type", "application/json")
 
+	requestBody, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		log.Fatal(err)
+		return
+	}
+
+	var itemUpdated models.Item
+
+	err = json.Unmarshal(requestBody, &itemUpdated)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	params := mux.Vars(r)
+	idItem, err := strconv.Atoi(params["id"])
+	if err != nil {
+		err = errors.New("Error al convertir id a entero")
+		w.Write([]byte(fmt.Sprint(err)))
+	}
+	itemUpdated.ID = idItem
+
+	rowsAffected, err := services.UpdateItem(itemUpdated)
+
+	if err != nil {
+		w.WriteHeader(http.StatusNoContent)
+		w.Write([]byte(fmt.Sprintf("No fue posible actualizar el item solicitado")))
+
+	}
+
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte(fmt.Sprintf("(%d) Objeto(s) con id: %d actualizado correctamente",rowsAffected, itemUpdated.ID)))
 }
+
+
+
+
 
 func DeleteItem(w http.ResponseWriter, r *http.Request)  {
 

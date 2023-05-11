@@ -62,12 +62,11 @@ func GetItem (id string) (*models.Item, error) {
 }
 
 // Crea y valida un nuevo item
-func CreateItem(newItem models.Item) (int64, error) {
+func CreateItem(newItem models.Item) (int, error) {
 
 	var err error
 	if newItem.Product == "" || newItem.CustomerName == "" || newItem.OrderDate == "" || newItem.Quantity == 0 || newItem.Price == 0 {
 		err = errors.New("Todos los campos son obligatorios")
-
 		return 0, err
 	}
 
@@ -77,7 +76,8 @@ func CreateItem(newItem models.Item) (int64, error) {
 	}
 
 	defer stmt.Close()
-	var newItemID int64
+
+	var newItemID int
 	err = stmt.QueryRow(newItem.CustomerName, newItem.OrderDate, newItem.Product, newItem.Quantity, newItem.Price).Scan(&newItemID)
 	if err != nil {
 		return 0, err
@@ -86,23 +86,31 @@ func CreateItem(newItem models.Item) (int64, error) {
 	return newItemID, nil
 }
 
+// Valida y actualiza un item existente
+func UpdateItem(updatedItem models.Item) (int64, error) {
+	var err error
+	if updatedItem.Product == "" || updatedItem.CustomerName == "" || updatedItem.OrderDate == "" || updatedItem.Quantity == 0 || updatedItem.Price == 0 {
+		err = errors.New("Todos los campos son obligatorios")
 
-// func CreateItem(newItem Item) (Item, error) {
-// 	// Se realiza la consulta SQL necesaria para crear el nuevo item en la base de datos.
-// 	query := "INSERT INTO items(name, description, price) VALUES($1, $2, $3, $4, $5, $6) RETURNING customer_name, order_date, product, quantity, price, details"
-// 	row := db.QueryRow(query, newItem.Name, newItem.Description, newItem.Price)
+		return 0, err
+	}
 
-// 	// Se crean las variables necesarias para almacenar los datos de la fila creada.
-// 	var id int
-// 	var name, description string
-// 	var price float64
+	stmt, err := Db.Prepare("UPDATE items	SET customer_name = $1,	order_date = $2, product = $3, quantity = $4, price = $5 WHERE id = $6")
+	if err != nil {
+		return 0, err
+	}
 
-// 	// Se escanean los valores de la fila creada y se almacenan en las variables correspondientes.
-// 	err := row.Scan(&id, &name, &description, &price)
-// 	if err != nil {
-// 			return Item{}, err
-// 	}
+	defer stmt.Close()
 
-// 	// Se devuelve el objeto creado como respuesta a la solicitud.
-// 	return Item{id, name, description, price}, nil
-// }
+	result, err := stmt.Exec(updatedItem.CustomerName, updatedItem.OrderDate, updatedItem.Product, updatedItem.Quantity, updatedItem.Price, updatedItem.ID )
+	if err != nil {
+		return  0 , err
+	}
+
+	rowsUpdated, err := result.RowsAffected()
+	if err != nil {
+		return  0 , err
+	}
+
+	return rowsUpdated, err
+}
