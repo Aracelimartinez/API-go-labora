@@ -21,7 +21,7 @@ func GetItems(w http.ResponseWriter, r *http.Request)  {
 
 	items, err := services.GetItems()
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		w.Write([]byte("Error al obtener los items"))
 		return
 	}
@@ -57,7 +57,7 @@ func GetItem(w http.ResponseWriter, r *http.Request)  {
 	item, err := services.GetItem(idItem)
 
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		w.Write([]byte("Error al obtener el item"))
 		return
 	}
@@ -90,13 +90,14 @@ func CreateItem(w http.ResponseWriter, r *http.Request)  {
 
 	err = json.Unmarshal(requestBody, &newItem)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		fmt.Println(err)
 		return
 	}
 
 	createdItemID, err := services.CreateItem(newItem)
 	if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
+			w.Write([]byte(fmt.Sprintf("Error al crear el item")))
 			return
 	}
 
@@ -105,7 +106,6 @@ func CreateItem(w http.ResponseWriter, r *http.Request)  {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 	}
-
 
 	w.WriteHeader(http.StatusCreated)
 	w.Write(responseBody)
@@ -140,21 +140,34 @@ func UpdateItem(w http.ResponseWriter, r *http.Request)  {
 	rowsAffected, err := services.UpdateItem(itemUpdated)
 
 	if err != nil {
-		w.WriteHeader(http.StatusNoContent)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		w.Write([]byte(fmt.Sprintf("No fue posible actualizar el item solicitado")))
-
+	} else if rowsAffected == 0 {
+		err = errors.New("El Objeto no existe")
+		http.Error(w, err.Error(), http.StatusNotFound)
+	} else {
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte(fmt.Sprintf("(%d) Objeto(s) con id: %d actualizado(s) correctamente",rowsAffected, itemUpdated.ID)))
 	}
-
-	w.WriteHeader(http.StatusOK)
-	w.Write([]byte(fmt.Sprintf("(%d) Objeto(s) con id: %d actualizado correctamente",rowsAffected, itemUpdated.ID)))
 }
 
-
-
-
-
+// Función para eliminar un elemento
 func DeleteItem(w http.ResponseWriter, r *http.Request)  {
+	w.Header().Set("Content-Type", "application/json")
+	params := mux.Vars(r)
+	idItem:= params["id"]
 
+	rowsAffected,err := services.DeleteItem(idItem)
+
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	} else if rowsAffected == 0 {
+	  err = errors.New("El Objeto no existe")
+		http.Error(w, err.Error(), http.StatusNotFound)
+	} else {
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte(fmt.Sprintf("El Objeto con id: %s fue eliminado correctamente", idItem)))
+	}
 }
 
 func GetDetails(w http.ResponseWriter, r *http.Request)  {

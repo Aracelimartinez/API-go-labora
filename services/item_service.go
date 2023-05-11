@@ -9,6 +9,7 @@ import (
 var Items []models.Item
 
 func GetItems() ([]models.Item, error) {
+	Items = nil
 
 	fmt.Println(Db)
 	rows, err := Db.Query("SELECT * FROM items")
@@ -113,4 +114,28 @@ func UpdateItem(updatedItem models.Item) (int64, error) {
 	}
 
 	return rowsUpdated, err
+}
+
+//Elimina un item
+func DeleteItem(id string) (int64, error) {
+	var err error
+
+	stmt, err := Db.Prepare("DELETE FROM items WHERE id = $1")
+	if err != nil {
+		return 0, err
+	}
+
+	defer stmt.Close()
+
+	result, err := stmt.Exec(id)
+	if err != nil {
+			return 0, err
+	}
+
+	rowsAffected, err := result.RowsAffected()
+    if err != nil {
+        return 0, err
+    }
+
+	return rowsAffected, nil
 }
