@@ -3,15 +3,14 @@ package services
 import (
 	"labora-api/models"
 	"errors"
-	"fmt"
 )
 
 var Items []models.Item
 
+// Obtiene todos os items
 func GetItems() ([]models.Item, error) {
 	Items = nil
 
-	fmt.Println(Db)
 	rows, err := Db.Query("SELECT * FROM items")
 
 	if err != nil {
@@ -25,7 +24,6 @@ func GetItems() ([]models.Item, error) {
 		err := rows.Scan(&item.ID, &item.CustomerName, &item.OrderDate, &item.Product, &item.Quantity, &item.Price)
 
 		if err != nil {
-			fmt.Println(err)
 			return nil, err
 		}
 
@@ -34,19 +32,18 @@ func GetItems() ([]models.Item, error) {
 
 	err = rows.Err()
 	if err != nil {
-		fmt.Println(err)
 		return nil, err
 	}
 
 	return Items, nil
 }
 
+// Busca un item por Id
 func GetItem (id string) (*models.Item, error) {
 	var item models.Item
 
 	stmt, err := Db.Prepare("SELECT * FROM items WHERE id = $1")
 	if err != nil {
-		fmt.Println(err)
 	    return &models.Item{}, err
 	}
 
@@ -55,7 +52,6 @@ func GetItem (id string) (*models.Item, error) {
 	row := stmt.QueryRow(id)
 	err = row.Scan(&item.ID, &item.CustomerName, &item.OrderDate, &item.Product, &item.Quantity, &item.Price)
     if err != nil {
-			fmt.Println(err)
       return &models.Item{}, err
     }
 
@@ -138,4 +134,39 @@ func DeleteItem(id string) (int64, error) {
     }
 
 	return rowsAffected, nil
+}
+
+func SearchItem(product string) ([]models.Item, error) {
+	Items = nil
+
+	stmt, err := Db.Prepare("SELECT * FROM items WHERE product = $1")
+	if err != nil {
+		return nil, err
+	}
+	defer stmt.Close()
+
+	rows, err := stmt.Query(product)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var item models.Item
+
+		err := rows.Scan(&item.ID, &item.CustomerName, &item.OrderDate, &item.Product, &item.Quantity, &item.Price)
+
+		if err != nil {
+			return nil, err
+		}
+
+		Items = append(Items, item)
+	}
+
+	err = rows.Err()
+	if err != nil {
+		return nil, err
+	}
+
+	return Items, nil
 }

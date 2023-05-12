@@ -73,7 +73,28 @@ func GetItem(w http.ResponseWriter, r *http.Request)  {
 }
 
 func SearchItem(w http.ResponseWriter, r *http.Request)  {
+	w.Header().Set("Content-Type", "application/json")
+	paramName := r.URL.Query()
+	product, errParam := paramName["product"]
+	if !errParam {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	items, err := services.SearchItem(product[0])
 
+	if err != nil {
+    http.Error(w, err.Error(), http.StatusInternalServerError)
+    w.Write([]byte("Error al obtener el item"))
+    return
+	}
+
+	if items == nil {
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte(fmt.Sprintf("Producto con nombre: %s no encontrado", product[0])))
+		return
+	}
+
+	json.NewEncoder(w).Encode(items)
 }
 
 // Función para crear un nuevo elemento
@@ -170,6 +191,77 @@ func DeleteItem(w http.ResponseWriter, r *http.Request)  {
 	}
 }
 
-func GetDetails(w http.ResponseWriter, r *http.Request)  {
+// func searchItem(w http.ResponseWriter, r *http.Request) {
+// 	w.Header().Set("Content-Type", "application/json")
+// 	paramName := r.URL.Query()
+// 	name, err := paramName["name"]
+// 	if !err {
+// 		w.WriteHeader(http.StatusBadRequest)
+// 		return
+// 	}
+// 	var itemsFound []Item
+// 	for _, item := range Items {
+// 		if strings.EqualFold(item.Name, name[0]) {
+// 			itemsFound = append(itemsFound, item)
+// 		}
+// 	}
+// 	json.NewEncoder(w).Encode(itemsFound)
+// }
 
-}
+// func getDetails(w http.ResponseWriter, r *http.Request)  {
+// 	w.Header().Set("Content-Type", "application/json")
+// 	wg := &sync.WaitGroup{}
+// 	detailsChannel := make(chan ItemDetails, len(Items))
+// 	detailedItems := []ItemDetails{}
+
+// 	for _, item := range Items {
+// 		wg.Add(1)
+// 		go func(id string) {
+// 			defer wg.Done()
+// 			// Manejar errores al obtener los detalles
+// 			details, err := getItemDetails(id)
+// 			if err != nil {
+// 				// Agregar el código de estado HTTP 500 para errores de servidor
+// 				http.Error(w, err.Error(), http.StatusInternalServerError)
+// 				return
+// 			}
+// 			detailsChannel <- details
+// 		}(item.ID)
+// 	}
+// 	wg.Wait()
+// 	close(detailsChannel)
+
+// 	for details := range detailsChannel {
+// 		detailedItems = append(detailedItems, details)
+// 	}
+
+// 	w.WriteHeader(http.StatusOK)
+// 	json.NewEncoder(w).Encode(detailedItems)
+// }
+
+// func getItemDetails(id string) (ItemDetails, error){
+// 	// Simula la obtención de detalles desde una fuente externa con un time.Sleep
+// 	time.Sleep(100 * time.Millisecond)
+// 	var foundItem Item
+// 	for _, item := range Items {
+// 		if item.ID == id {
+// 			foundItem = item
+// 			break
+// 		}
+// 	}
+
+// 	if foundItem.ID == "" {
+// 		return ItemDetails{}, errors.New("item no encontrado")
+// 	}
+
+// 	// Simular un error al consultar el servicio externo/DB
+// 	if foundItem.ID == "3" {
+// 		return ItemDetails{}, errors.New("error al consultar el servicio externo/DB")
+// 	}
+// 	//Obviamente, aquí iria un SELECT si es SQL o un llamado a un servicio externo
+// 	//pero esta busqueda del item junto con Details, la hacemos a mano.
+// 	return ItemDetails{
+// 		Item:    foundItem,
+// 		Details: fmt.Sprintf("Detalles del item %s", foundItem.ID),
+// }, nil
+// }
