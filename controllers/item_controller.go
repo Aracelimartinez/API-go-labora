@@ -13,8 +13,6 @@ import (
 	"net/http"
 )
 
-
-
 // Función para obtener todos los elementos
 func GetItems(w http.ResponseWriter, r *http.Request)  {
 	w.Header().Set("Content-Type", "application/json")
@@ -190,23 +188,6 @@ func DeleteItem(w http.ResponseWriter, r *http.Request)  {
 		w.Write([]byte(fmt.Sprintf("El Objeto con id: %s fue eliminado correctamente", idItem)))
 	}
 }
-
-// func searchItem(w http.ResponseWriter, r *http.Request) {
-// 	w.Header().Set("Content-Type", "application/json")
-// 	paramName := r.URL.Query()
-// 	name, err := paramName["name"]
-// 	if !err {
-// 		w.WriteHeader(http.StatusBadRequest)
-// 		return
-// 	}
-// 	var itemsFound []Item
-// 	for _, item := range Items {
-// 		if strings.EqualFold(item.Name, name[0]) {
-// 			itemsFound = append(itemsFound, item)
-// 		}
-// 	}
-// 	json.NewEncoder(w).Encode(itemsFound)
-// }
 
 // func getDetails(w http.ResponseWriter, r *http.Request)  {
 // 	w.Header().Set("Content-Type", "application/json")
