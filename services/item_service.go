@@ -3,9 +3,11 @@ package services
 import (
 	"labora-api/models"
 	"errors"
+	"sync"
 )
 
 var Items []models.Item
+var	ItemMutex sync.Mutex
 
 // Obtiene todos os items
 func GetItems() ([]models.Item, error) {
@@ -21,7 +23,7 @@ func GetItems() ([]models.Item, error) {
 	for rows.Next() {
 		var item models.Item
 
-		err := rows.Scan(&item.ID, &item.CustomerName, &item.OrderDate, &item.Product, &item.Quantity, &item.Price)
+		err := rows.Scan(&item.ID, &item.CustomerName, &item.OrderDate, &item.Product, &item.Quantity, &item.Price, &item.TotalPrice, &item.ViewCounter)
 
 		if err != nil {
 			return nil, err
@@ -42,6 +44,16 @@ func GetItems() ([]models.Item, error) {
 func GetItem (id string) (*models.Item, error) {
 	var item models.Item
 
+	ItemMutex.Lock()
+	
+	query := "UPDATE items SET view_counter = view_counter + 1 WHERE id = $1"
+	_, err := Db.Exec(query, id)
+	if err != nil {
+		return &models.Item{}, err
+	}
+
+	ItemMutex.Unlock()
+
 	stmt, err := Db.Prepare("SELECT * FROM items WHERE id = $1")
 	if err != nil {
 	    return &models.Item{}, err
@@ -50,7 +62,7 @@ func GetItem (id string) (*models.Item, error) {
 	defer stmt.Close()
 
 	row := stmt.QueryRow(id)
-	err = row.Scan(&item.ID, &item.CustomerName, &item.OrderDate, &item.Product, &item.Quantity, &item.Price)
+	err = row.Scan(&item.ID, &item.CustomerName, &item.OrderDate, &item.Product, &item.Quantity, &item.Price, &item.TotalPrice, &item.ViewCounter)
     if err != nil {
       return &models.Item{}, err
     }
@@ -67,7 +79,9 @@ func CreateItem(newItem models.Item) (int, error) {
 		return 0, err
 	}
 
-	stmt, err := Db.Prepare("INSERT INTO public.items(customer_name, order_date, product, quantity, price) VALUES ($1, $2, $3, $4, $5) RETURNING id")
+	newItem.CalculateTotalPrice()
+
+	stmt, err := Db.Prepare("INSERT INTO public.items(customer_name, order_date, product, quantity, price, total_price) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id")
 	if err != nil {
 		return 0, err
 	}
@@ -75,7 +89,7 @@ func CreateItem(newItem models.Item) (int, error) {
 	defer stmt.Close()
 
 	var newItemID int
-	err = stmt.QueryRow(newItem.CustomerName, newItem.OrderDate, newItem.Product, newItem.Quantity, newItem.Price).Scan(&newItemID)
+	err = stmt.QueryRow(newItem.CustomerName, newItem.OrderDate, newItem.Product, newItem.Quantity, newItem.Price, newItem.TotalPrice).Scan(&newItemID)
 	if err != nil {
 		return 0, err
 	}
@@ -92,14 +106,16 @@ func UpdateItem(updatedItem models.Item) (int64, error) {
 		return 0, err
 	}
 
-	stmt, err := Db.Prepare("UPDATE items	SET customer_name = $1,	order_date = $2, product = $3, quantity = $4, price = $5 WHERE id = $6")
+	updatedItem.CalculateTotalPrice()
+
+	stmt, err := Db.Prepare("UPDATE items	SET customer_name = $1,	order_date = $2, product = $3, quantity = $4, price = $5, total_price = $6 WHERE id = $7")
 	if err != nil {
 		return 0, err
 	}
 
 	defer stmt.Close()
 
-	result, err := stmt.Exec(updatedItem.CustomerName, updatedItem.OrderDate, updatedItem.Product, updatedItem.Quantity, updatedItem.Price, updatedItem.ID )
+	result, err := stmt.Exec(updatedItem.CustomerName, updatedItem.OrderDate, updatedItem.Product, updatedItem.Quantity, updatedItem.Price, updatedItem.TotalPrice, updatedItem.ID )
 	if err != nil {
 		return  0 , err
 	}
