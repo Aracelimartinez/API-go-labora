@@ -20,11 +20,16 @@ type DbData struct {
 
 var Db *sql.DB
 
+func init() {
+	fmt.Println("db.go::init")
+	EstablishDbConnection()
+}
+
 func LoadEnv() (DbData, error) {
 	var err error
 
 	if err = godotenv.Load(".env"); err != nil {
-		log.Fatalf("Error al cargar el archivo .env")
+		log.Fatalf("Error al cargar el archivo .env: %v", err)
 		return DbData{}, err
 	}
 

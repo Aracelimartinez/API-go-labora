@@ -44,15 +44,10 @@ func GetItems() ([]models.Item, error) {
 func GetItem (id string) (*models.Item, error) {
 	var item models.Item
 
-	ItemMutex.Lock()
-	
-	query := "UPDATE items SET view_counter = view_counter + 1 WHERE id = $1"
-	_, err := Db.Exec(query, id)
+	err := IncrementViewCounter(id)
 	if err != nil {
-		return &models.Item{}, err
+		return  &models.Item{}, err
 	}
-
-	ItemMutex.Unlock()
 
 	stmt, err := Db.Prepare("SELECT * FROM items WHERE id = $1")
 	if err != nil {
@@ -152,6 +147,7 @@ func DeleteItem(id string) (int64, error) {
 	return rowsAffected, nil
 }
 
+//Busca un item por producto
 func SearchItem(product string) ([]models.Item, error) {
 	Items = nil
 
@@ -185,4 +181,17 @@ func SearchItem(product string) ([]models.Item, error) {
 	}
 
 	return Items, nil
+}
+
+func IncrementViewCounter(id string) (error) {
+	ItemMutex.Lock()
+
+	query := "UPDATE items SET view_counter = view_counter + 1 WHERE id = $1"
+	_, err := Db.Exec(query, id)
+	if err != nil {
+		return  err
+	}
+
+	ItemMutex.Unlock()
+	return nil
 }
