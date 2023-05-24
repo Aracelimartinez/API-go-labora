@@ -5,7 +5,8 @@ import (
 	"labora-api/controllers"
 	"labora-api/services"
 	"log"
-
+	"github.com/rs/cors"
+	// "github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
 	_ "github.com/lib/pq"
 )
@@ -27,8 +28,16 @@ func main() {
 	router.HandleFunc("/items/{id}", controllers.UpdateItem).Methods("PUT")
 	router.HandleFunc("/items/{id}", controllers.DeleteItem).Methods("DELETE")
 
+	// Configurar el middleware CORS
+	corsOptions := cors.New(cors.Options{
+		AllowedOrigins: []string{"http://localhost:5432"},
+		AllowedMethods: []string{"GET", "POST"},
+	})
+
+	handler := corsOptions.Handler(router)
+
 	port := ":8000"
-	if err := config.StartServer(port, router); err != nil {
+	if err := config.StartServer(port, handler); err != nil {
 		log.Fatalf("Error starting server: %v", err)
 	}
 
