@@ -6,6 +6,10 @@ import (
 	"sync"
 )
 
+type ItemService struct {
+	dbHandler DBHandler
+}
+
 var Items []models.Item
 var	ItemMutex sync.Mutex
 
